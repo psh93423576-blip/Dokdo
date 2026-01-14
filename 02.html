@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>독도: 역사적 진실의 연대기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Add DataLabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        /* Custom scrollbar for timeline list */
+        .timeline-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .timeline-scroll::-webkit-scrollbar-track {
+            background: #f5f5f4; 
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb {
+            background: #d6d3d1; 
+            border-radius: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a8a29e; 
+        }
+        
+        /* Chart container constraint classes */
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* max-w-xl equivalent */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-wrapper {
+                height: 350px;
+            }
+        }
+
+        /* Timeline Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .timeline-item {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+    <!-- Chosen Palette: Warm Historical (Stone/Paper base) with Deep Sea Blue accents -->
+    <!-- Application Structure Plan: 
+         1. Hero: Title and mission statement.
+         2. Analytics Dashboard: Two charts to provide high-level context.
+         3. Vertical Timeline: A central timeline flow that lists events chronologically with detailed cards.
+         4. Data Archive: A searchable table for quick lookup.
+    -->
+    <!-- Visualization & Content Choices:
+         1. Vertical Timeline: Replaces the split-view for a more storytelling approach.
+         2. Charts: Retained for data context.
+         3. NO SVG/Mermaid: All icons are Unicode, all charts are Canvas (Chart.js).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-stone-50 text-stone-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Navigation / Header -->
+    <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 md:py-6 flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight">🇰🇷 독도: 역사적 진실의 연대기</h1>
+                <p class="text-blue-200 text-sm mt-1">사료가 증명하는 대한민국의 영토 주권</p>
+            </div>
+            <!-- Right side container for Badge and Home Button -->
+            <div class="flex flex-col md:flex-row items-center gap-3 mt-4 md:mt-0">
+                <div class="text-sm text-blue-100 bg-blue-800 px-4 py-2 rounded-full">
+                    <span>데이터 출처: 역사 기록 및 공식 문서</span>
+                </div>
+                <a href="index.html" class="inline-flex items-center gap-2 bg-white text-blue-900 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                    <span>🏠</span> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8 space-y-12">
+
+        <!-- Intro Section -->
+        <section class="max-w-4xl mx-auto text-center">
+            <h2 class="text-2xl font-bold text-stone-700 mb-3">역사적 기록으로 보는 독도</h2>
+            <p class="text-stone-600 leading-relaxed">
+                이 인터랙티브 보고서는 1454년 세종실록지리지부터 현대에 이르기까지, 독도가 대한민국의 고유 영토임을 입증하는 
+                역사적 사건과 문헌들을 연대기순으로 정리했습니다. 아래의 데이터 시각화와 타임라인을 통해 
+                어떻게 독도가 역사적으로 관리되어 왔으며, 일본의 주장이 왜 허구인지 직접 확인해 보십시오.
+            </p>
+        </section>
+
+        <!-- Analytics Section -->
+        <section class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 md:p-8">
+            <div class="mb-6 border-b border-stone-100 pb-4">
+                <h3 class="text-lg font-bold text-blue-900 flex items-center gap-2">
+                    <span>📊</span> 데이터로 보는 역사적 흐름
+                </h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Chart 1: Events by Era -->
+                <div class="flex flex-col items-center">
+                    <h4 class="text-sm font-semibold text-stone-600 mb-4">시대별 주요 기록 및 사건 빈도</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="eraChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Source Origin -->
+                <div class="flex flex-col items-center">
+                    <h4 class="text-sm font-semibold text-stone-600 mb-4">기록의 출처 및 성격 분석</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="sourceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vertical Timeline Section -->
+        <section class="py-4">
+            <div class="text-center mb-10">
+                <h3 class="text-xl font-bold text-blue-900 flex items-center justify-center gap-2">
+                    <span>🕰️</span> 타임라인 (Timeline)
+                </h3>
+                <p class="text-sm text-stone-500 mt-2">
+                    스크롤을 내리며 역사의 흐름을 확인하세요.
+                </p>
+                <div class="max-w-md mx-auto mt-4">
+                    <input type="text" id="timelineSearch" placeholder="연도 또는 사건 검색..." class="w-full px-4 py-2 border border-stone-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-center bg-white shadow-sm">
+                </div>
+            </div>
+
+            <!-- Timeline Container -->
+            <div class="relative max-w-5xl mx-auto px-2 md:px-0" id="timelineContainer">
+                <!-- Central Line (Visible on Desktop, Left on Mobile) -->
+                <div class="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-stone-300 transform md:-translate-x-1/2 z-0"></div>
+                
+                <!-- Timeline Items will be injected here -->
+            </div>
+        </section>
+
+        <!-- Data Table Section -->
+        <section class="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+            <div class="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-blue-900 flex items-center gap-2">
+                        <span>📜</span> 전체 기록 아카이브
+                    </h3>
+                </div>
+                <div class="w-full md:w-auto">
+                   <button onclick="resetFilters()" class="text-sm text-blue-600 hover:underline mr-4">필터 초기화</button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-stone-100 text-stone-600 text-sm uppercase tracking-wider border-b border-stone-200">
+                            <th class="p-4 font-semibold w-24">연도</th>
+                            <th class="p-4 font-semibold w-1/4">사건/문헌명</th>
+                            <th class="p-4 font-semibold">내용 및 의미</th>
+                            <th class="p-4 font-semibold w-32">출처</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody" class="text-sm text-stone-700 divide-y divide-stone-100">
+                        <!-- Table rows generated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-400 py-8 text-center">
+        <p class="text-sm">&copy; 2024 독도 역사 아카이브. 대한민국 영토 독도.</p>
+    </footer>
+
+    <script>
+        // --- DATA ---
+        const dokdoData = [
+            { year: 1454, title: "세종실록지리지", content: "우산(독도)과 무릉(울릉도)이 강원도 울진현에 속한다고 기록함.", category: "한국 문헌", typeCode: 0, source: "[1]" },
+            { year: 1531, title: "신증동국여지승람", content: "독도가 우리 영토임을 밝히는 관찬 지리지가 편찬됨.", category: "한국 문헌", typeCode: 0, source: "[2]" },
+            { year: 1667, title: "은주시청합기", content: "일본의 문헌. 울릉도와 독도가 일본 영토 밖(조선 땅)임을 기록함.", category: "일본 문헌 (한국인정)", typeCode: 1, source: "[3]" },
+            { year: 1693, title: "1차 안용복 사건", content: "안용복이 일본으로 끌려가 독도가 조선 땅임을 강력히 주장함.", category: "사건/활동", typeCode: 0, source: "[4]" },
+            { year: 1696, title: "2차 안용복 사건", content: "안용복이 일본에 건너가 불법 침범에 항의. 일본 막부가 '울릉도 도해 금지령'을 내림.", category: "사건/활동", typeCode: 1, source: "[5]" },
+            { year: 1785, title: "삼국접양지도", content: "일본 하야시 시헤이가 제작. 독도를 조선색(황색)으로 칠하고 '조선의 것'이라 표기함.", category: "일본 지도 (한국인정)", typeCode: 1, source: "[6]" },
+            { year: 1877, title: "태정관 지령", content: "일본 최고 행정기관이 '독도와 울릉도는 일본과 관계없다'고 공식 인정함.", category: "일본 공문서 (한국인정)", typeCode: 1, source: "[7]" },
+            { year: 1900, title: "대한제국 칙령 41호", content: "고종 황제가 독도를 울릉군의 관할 구역으로 공식 반포함.", category: "한국 공문서", typeCode: 0, source: "[8]" },
+            { year: 1905, title: "시마네현 고시 40호", content: "일본이 러일전쟁 중 독도를 불법적으로 '다케시마'로 편입함.", category: "일본 침탈", typeCode: 2, source: "[9]" },
+            { year: 1906, title: "심흥택 보고서", content: "울릉군수 심흥택이 독도가 일본에 편입되었다는 소식을 듣고 중앙 정부에 보고함.", category: "한국 공문서", typeCode: 0, source: "[8]" },
+            { year: 1946, title: "SCAPIN 제677호", content: "연합군최고사령관 지령. 독도를 일본의 통치권에서 공식적으로 제외함.", category: "국제 조약/명령", typeCode: 3, source: "[10]" },
+            { year: 1951, title: "샌프란시스코 강화조약", content: "일본이 한국의 독립을 인정했으나, 독도 명시가 누락되어 분쟁의 씨앗이 됨.", category: "국제 조약/명령", typeCode: 3, source: "[11]" },
+            { year: 1952, title: "평화선 선포", content: "이승만 대통령이 독도를 포함한 인접 해양에 대한 주권을 선언함.", category: "한국 공문서", typeCode: 0, source: "[12]" },
+            { year: 1953, title: "독도의용수비대 활동", content: "홍순칠 등 민간인들이 독도에 상주하며 일본의 침범을 무력으로 막아냄.", category: "사건/활동", typeCode: 0, source: "[13], [14]" },
+            { year: 1965, title: "한일기본조약", content: "독도 문제를 직접 언급하지 않고 봉합함 (이후 갈등 잠복).", category: "외교", typeCode: 3, source: "[15]" },
+            { year: 1998, title: "신한일어업협정", content: "독도가 한일 중간수역에 포함되며 국내외적 논란이 발생함.", category: "외교", typeCode: 3, source: "[16]" },
+            { year: 2005, title: "다케시마의 날 제정", content: "일본 시마네현이 2월 22일을 '다케시마의 날'로 제정하여 도발함.", category: "일본 침탈", typeCode: 2, source: "[17]" },
+            { year: 2011, title: "일본 교과서 왜곡", content: "일본 중학교 교과서 14종에 독도 영유권 주장을 기술함.", category: "일본 침탈", typeCode: 2, source: "[18]" }
+        ];
+
+        let filteredData = [...dokdoData];
+
+        // --- CHART INITIALIZATION ---
+        function initCharts() {
+            Chart.register(ChartDataLabels);
+
+            const eras = { "조선시대": 0, "대한제국/일제강점기": 0, "광복/현대": 0 };
+            dokdoData.forEach(d => {
+                if (d.year < 1890) eras["조선시대"]++;
+                else if (d.year < 1946) eras["대한제국/일제강점기"]++;
+                else eras["광복/현대"]++;
+            });
+
+            const types = { "한국 측 기록": 0, "일본 측 기록(한국인정)": 0, "일본 측 도발": 0, "국제/외교": 0 };
+            dokdoData.forEach(d => {
+                if (d.typeCode === 0) types["한국 측 기록"]++;
+                else if (d.typeCode === 1) types["일본 측 기록(한국인정)"]++;
+                else if (d.typeCode === 2) types["일본 측 도발"]++;
+                else types["국제/외교"]++;
+            });
+
+            // Chart 1
+            const ctx1 = document.getElementById('eraChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(eras),
+                    datasets: [{
+                        label: '기록 수',
+                        data: Object.values(eras),
+                        backgroundColor: ['#d6d3d1', '#78716c', '#1e3a8a'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#444',
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: val => val + "건",
+                            font: { weight: 'bold' }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grace: '10%' }
+                    }
+                }
+            });
+
+            // Chart 2
+            const ctx2 = document.getElementById('sourceChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(types),
+                    datasets: [{
+                        data: Object.values(types),
+                        backgroundColor: ['#1e40af', '#22c55e', '#ef4444', '#9ca3af'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 20 },
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 10, font: {size: 11} } },
+                        datalabels: {
+                            color: '#fff',
+                            formatter: (value, ctx) => {
+                                let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                return (value * 100 / sum) > 5 ? (value * 100 / sum).toFixed(1) + "%" : '';
+                            },
+                            font: { weight: 'bold' },
+                            textShadowColor: 'rgba(0,0,0,0.5)',
+                            textShadowBlur: 4
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- VERTICAL TIMELINE RENDERER ---
+        function renderVerticalTimeline(data) {
+            const container = document.getElementById('timelineContainer');
+            // Keep the background line (first child)
+            const bgLine = container.firstElementChild;
+            container.innerHTML = '';
+            container.appendChild(bgLine);
+
+            data.forEach((item, index) => {
+                const isLeft = index % 2 === 0;
+                
+                // Color coding based on Type
+                let colorClass = "border-l-blue-500 bg-blue-50";
+                let dotColor = "bg-blue-600";
+                if(item.typeCode === 1) { colorClass = "border-l-green-500 bg-green-50"; dotColor = "bg-green-600"; }
+                if(item.typeCode === 2) { colorClass = "border-l-red-500 bg-red-50"; dotColor = "bg-red-600"; }
+                if(item.typeCode === 3) { colorClass = "border-l-stone-400 bg-stone-100"; dotColor = "bg-stone-500"; }
+
+                const row = document.createElement('div');
+                // Flex container for the timeline row
+                // Mobile: Just flex row. Desktop: flex row with justify based on isLeft
+                row.className = `relative flex items-center mb-12 timeline-item md:justify-between`;
+                
+                // On mobile, everything is pushed to the right of the line (line is at left-8)
+                // On desktop, we use the alternating logic.
+                
+                // Inner HTML Structure
+                // We need to handle Desktop and Mobile layout differences via Tailwind classes
+                
+                // Left Side Content (Empty for Right items on Desktop)
+                const leftContent = isLeft ? 
+                    `<div class="hidden md:block w-[45%] text-right pr-8">
+                        <div class="inline-block px-3 py-1 rounded-full text-sm font-bold text-white mb-2 ${dotColor}">${item.year}</div>
+                        <h4 class="text-xl font-bold text-stone-800">${item.title}</h4>
+                        <p class="text-sm text-stone-500 font-medium mb-2">${item.category}</p>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${colorClass} text-stone-700 text-sm leading-relaxed">
+                            ${item.content}
+                            <div class="mt-2 text-xs text-stone-400 italic">${item.source}</div>
+                        </div>
+                     </div>` : `<div class="hidden md:block w-[45%]"></div>`;
+
+                // Center Dot
+                const dot = `
+                    <div class="absolute left-8 md:left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10 ${dotColor}"></div>
+                `;
+
+                // Right Side Content (Visible on Mobile for ALL items, Visible on Desktop for Right items)
+                // Mobile View: Always show card on the right of the line.
+                // Desktop View: Only show if !isLeft.
+                
+                // We actually need a different approach for responsive timeline:
+                // Mobile: Line at Left. Card at Right.
+                // Desktop: Line at Center. Card Alternates.
+                
+                // To achieve this cleanly, I'll generate the Card HTML and place it differently.
+                
+                const cardHTML = `
+                    <div class="w-full ml-16 md:ml-0 md:w-[45%] text-left ${isLeft ? 'md:hidden' : 'md:pl-8'}">
+                        <div class="md:hidden inline-block px-3 py-1 rounded-full text-sm font-bold text-white mb-2 ${dotColor}">${item.year}</div>
+                        <!-- Desktop Year Badge for Right items -->
+                        ${!isLeft ? `<div class="hidden md:inline-block px-3 py-1 rounded-full text-sm font-bold text-white mb-2 ${dotColor}">${item.year}</div>` : ''}
+                        
+                        <h4 class="text-xl font-bold text-stone-800">${item.title}</h4>
+                        <p class="text-sm text-stone-500 font-medium mb-2">${item.category}</p>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${colorClass} text-stone-700 text-sm leading-relaxed">
+                            ${item.content}
+                            <div class="mt-2 text-xs text-stone-400 italic">${item.source}</div>
+                        </div>
+                    </div>
+                `;
+
+                row.innerHTML = leftContent + dot + cardHTML;
+                container.appendChild(row);
+            });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-stone-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-stone-500">${item.year}</td>
+                    <td class="p-4 font-semibold text-blue-900">${item.title}</td>
+                    <td class="p-4 text-stone-600 leading-relaxed">${item.content}</td>
+                    <td class="p-4 text-xs text-stone-400 italic">${item.source}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterData(query) {
+            const lowerQuery = query.toLowerCase();
+            filteredData = dokdoData.filter(item => 
+                item.title.toLowerCase().includes(lowerQuery) || 
+                item.content.toLowerCase().includes(lowerQuery) ||
+                item.year.toString().includes(lowerQuery)
+            );
+            renderVerticalTimeline(filteredData);
+            renderTable(filteredData);
+        }
+
+        function resetFilters() {
+            document.getElementById('timelineSearch').value = '';
+            filteredData = [...dokdoData];
+            renderVerticalTimeline(filteredData);
+            renderTable(filteredData);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            renderVerticalTimeline(dokdoData);
+            renderTable(dokdoData);
+            
+            document.getElementById('timelineSearch').addEventListener('input', (e) => {
+                filterData(e.target.value);
+            });
+        });
+
+    </script>
+</body>
+</html>
