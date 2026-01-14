@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>독도 핵심 용어 사전: 역사와 진실</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- FontAwesome 추가 (홈 아이콘 표시용) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 300px; 
+            max-height: 400px; 
+        } 
+        @media (min-width: 768px) { 
+            .chart-container { height: 350px; } 
+        }
+        .active-tab {
+            border-bottom: 2px solid #1e3a8a; /* blue-900 */
+            color: #1e3a8a;
+            font-weight: 700;
+        }
+        .timeline-point.active {
+            background-color: #1e3a8a;
+            border-color: #1e3a8a;
+            transform: scale(1.25);
+        }
+    </style>
+    <!-- Chosen Palette: Warm Neutral History (Background: #f8fafc (Slate-50), Primary: #1e3a8a (Blue-900), Accent: #b91c1c (Red-700), Text: #334155 (Slate-700)) -->
+    <!-- Application Structure Plan: A tab-based SPA designed for focused exploration. 
+         1. 'History of Names' (Timeline View): Visualizes the evolution of names over time to show continuity. 
+         2. 'Historical Evidence' (Dashboard View): Uses a chart to contrast the volume of Korean evidence vs. Japanese claims, supported by an interactive list.
+         3. 'People & Events' (Card Grid): Highlights key actors and moments in a digestible card format. 
+         This structure separates distinct types of information (chronological, evidentiary, biographical) for better mental modeling. -->
+    <!-- Visualization & Content Choices: 
+         1. Names: Interactive Timeline (HTML/CSS) -> Allows users to traverse history linearly. 
+         2. Documents: Bar Chart (Chart.js) -> Visually demonstrates the preponderance of evidence (5 pro-Korea vs 1 pro-Japan claim) listed in the source. 
+         3. People: Profile Cards -> Humanizes the history. 
+         4. Interaction: Click events drive content updates in the detail view without page reloads. 
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-50 text-slate-700">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10 relative">
+        <!-- 홈 버튼 추가 (요청하신 스타일 및 기능 적용) -->
+        <!-- 배경이 흰색이므로 텍스트 색상을 text-slate-400(회색)으로, 호버 시 text-blue-900(진한 파랑)으로 변경하여 가시성 확보 -->
+        <a href="index.html" class="absolute top-4 right-4 md:top-6 md:right-6 z-20 text-slate-400 hover:text-blue-900 transition-colors p-2" aria-label="홈으로 이동">
+            <i class="fas fa-home text-2xl drop-shadow-sm"></i>
+        </a>
+
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-900">🇰🇷 독도 핵심 용어 사전</h1>
+            <!-- 홈 버튼과 겹치지 않도록 오른쪽 여백(pr-12) 추가 -->
+            <div class="text-sm text-slate-500 hidden sm:block pr-12">역사와 진실의 기록</div>
+        </div>
+        <!-- Navigation -->
+        <nav class="max-w-4xl mx-auto px-4 border-t border-slate-100">
+            <ul class="flex space-x-6 overflow-x-auto">
+                <li><button onclick="app.switchTab('names')" id="tab-names" class="py-3 px-2 text-sm font-medium hover:text-blue-800 transition-colors whitespace-nowrap active-tab">명칭의 변천</button></li>
+                <li><button onclick="app.switchTab('documents')" id="tab-documents" class="py-3 px-2 text-sm font-medium hover:text-blue-800 transition-colors whitespace-nowrap">핵심 고문서 (증거)</button></li>
+                <li><button onclick="app.switchTab('people')" id="tab-people" class="py-3 px-2 text-sm font-medium hover:text-blue-800 transition-colors whitespace-nowrap">인물 및 사건</button></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto px-4 py-8 pb-20">
+
+        <!-- Section 1: Names (Timeline) -->
+        <section id="view-names" class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">시대별 독도의 이름</h2>
+                <p class="text-slate-600 mb-6">독도의 명칭은 시대에 따라 변화해왔으며, 이는 한국의 영유권을 입증하는 중요한 역사적 지표입니다. 아래 타임라인의 연대(시대)를 클릭하여 상세 내용을 확인하세요.</p>
+                
+                <!-- Interactive Timeline Wrapper -->
+                <div class="relative pt-8 pb-12 px-4 overflow-x-hidden">
+                    <!-- Line -->
+                    <div class="absolute top-10 left-0 right-0 h-1 bg-slate-200 rounded"></div>
+                    
+                    <!-- Points Container -->
+                    <div class="relative flex justify-between items-center z-10" id="timeline-points">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Detail Card -->
+                <div id="name-detail-card" class="bg-blue-50 rounded-lg p-6 border-l-4 border-blue-900 transition-all duration-300">
+                    <h3 id="name-title" class="text-2xl font-bold text-blue-900 mb-2">우산도 (于山島)</h3>
+                    <div id="name-era" class="inline-block bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded mb-3 font-semibold">삼국시대 ~ 조선</div>
+                    <p id="name-desc" class="text-slate-700 leading-relaxed">삼국시대 우산국에서 유래한 독도의 옛 이름입니다.</p>
+                    <p id="name-note" class="mt-4 text-sm text-slate-500 italic">비고: 한국 고문헌 등장</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Documents (Chart + List) -->
+        <section id="view-documents" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">문헌으로 보는 진실</h2>
+                <p class="text-slate-600 mb-6">역사적 사료들은 독도가 한국의 영토임을 명확히 증명하고 있습니다. 아래 차트는 분석된 주요 문헌 중 한국의 영유권을 입증하는 자료와 일본의 주장을 비교합니다.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    <!-- Chart Column -->
+                    <div class="bg-slate-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-semibold text-center text-slate-500 mb-4">기록된 역사적 증거의 균형</h3>
+                        <div class="chart-container">
+                            <canvas id="docChart"></canvas>
+                        </div>
+                        <p class="text-xs text-center text-slate-400 mt-2">차트의 막대를 클릭하여 관련 문헌만 필터링해보세요.</p>
+                    </div>
+
+                    <!-- List Column -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-lg">문헌 목록</h3>
+                            <button onclick="app.resetDocFilter()" class="text-xs text-blue-600 hover:underline">모두 보기</button>
+                        </div>
+                        <div id="doc-list" class="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            <!-- Generated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: People & Events (Grid) -->
+        <section id="view-people" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">독도를 지킨 사람들 & 주요 사건</h2>
+                <p class="text-slate-600 mb-6">독도의 역사는 단순히 땅의 역사가 아니라, 이를 지켜온 사람들과 치열한 외교적 사건들의 기록입니다.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6" id="people-grid">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-100 py-8 mt-8 border-t border-slate-200">
+        <div class="max-w-4xl mx-auto px-4 text-center text-slate-500 text-sm">
+            <p class="font-semibold">독도 핵심 용어 사전</p>
+            <p class="mt-2 text-xs">본 자료는 제공된 소스 리포트를 바탕으로 구성되었습니다.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA STORE ---
+        const data = {
+            names: [
+                { id: 1, name: "우산도 (于山島)", era: "삼국시대", desc: "삼국시대 우산국에서 유래한 독도의 옛 이름입니다.", note: "한국 고문헌 등장" },
+                { id: 2, name: "석도 (石島)", era: "1900년 (대한제국)", desc: "1900년 대한제국 칙령 제41호에 등장하는 이름입니다. '돌섬(독섬)'을 한자로 표기한 것으로, 독도가 울릉군의 관할임을 보여주는 증거입니다.", note: "근대 한국 명칭" },
+                { id: 3, name: "마쓰시마 (松島)", era: "과거 일본 호칭", desc: "과거 일본이 독도를 부르던 명칭입니다. 당시 일본은 울릉도를 '죽도(다케시마)'라고 불렀습니다.", note: "일본측 과거 호칭" },
+                { id: 4, name: "리앙쿠르암", era: "1849년 (국제)", desc: "1849년 프랑스 포경선 리앙쿠르호가 독도를 발견하고 붙인 서양식 명칭입니다.", note: "국제 통용 명칭" }
+            ],
+            documents: [
+                { title: "세종실록지리지", year: "1454", type: "KR_Evidence", desc: "조선의 관찬서. 독도(우산)와 울릉도(무릉)가 강원도 울진현에 속하며, 두 섬이 서로 바라볼 수 있다고 기록함.", key: true },
+                { title: "은주시청합기", year: "1667", type: "KR_Evidence", desc: "일본 고문헌. 울릉도와 독도가 일본 영토 밖(조선 땅)임을 스스로 기록한 최초의 일본 문헌.", key: false },
+                { title: "태정관 지령", year: "1877", type: "KR_Evidence", desc: "일본 메이지 정부 최고 행정기관의 지시. '울릉도와 독도는 일본과 관계없다'고 공식 인정함.", key: true },
+                { title: "대한제국 칙령 제41호", year: "1900", type: "KR_Evidence", desc: "고종 황제 반포. 독도(석도)를 울릉군의 관할 구역으로 명시하여 반포한 근대 법령.", key: true },
+                { title: "시마네현 고시 제40호", year: "1905", type: "JP_Claim", desc: "러일전쟁 중 일본이 독도를 주인 없는 땅이라 주장하며 불법적으로 자국 영토로 편입한 고시.", key: false },
+                { title: "SCAPIN 제677호", year: "1946", type: "KR_Evidence", desc: "제2차 세계대전 후 연합군 최고사령관 지령. 독도를 일본의 통치권에서 제외한다고 명시.", key: true }
+            ],
+            people: [
+                { name: "안용복", role: "조선시대 어부", desc: "조선 숙종 때 일본에 건너가 울릉도와 독도가 조선 땅임을 강력히 주장하여 '울릉도 도해 금지령'을 이끌어냄.", icon: "🛶" },
+                { name: "독도의용수비대", role: "민간 수비 단체", desc: "1950년대 한국전쟁 혼란기에 일본의 침범을 막기 위해 홍순칠 등 민간인들이 자발적으로 결성.", icon: "🛡️" },
+                { name: "평화선 (이승만 라인)", role: "해양 주권 선언", desc: "1952년 이승만 대통령이 선포. 독도를 포함한 인접 해양에 대한 주권을 명확히 함.", icon: "⚓" },
+                { name: "다케시마의 날", role: "일본 기념일", desc: "일본 시마네현이 1905년의 불법 편입을 기념하여 매년 2월 22일로 제정. 한일 갈등의 원인.", icon: "📅" }
+            ]
+        };
+
+        // --- APP LOGIC ---
+        const app = {
+            currentTab: 'names',
+            chartInstance: null,
+
+            init: () => {
+                app.renderTimeline();
+                app.renderDocList('all'); // Initial render of all docs
+                app.renderPeople();
+                app.initChart();
+            },
+
+            switchTab: (tabId) => {
+                // Update UI state
+                document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
+                document.getElementById(`tab-${tabId}`).classList.add('active-tab');
+
+                // Toggle sections
+                ['names', 'documents', 'people'].forEach(section => {
+                    const el = document.getElementById(`view-${section}`);
+                    if (section === tabId) {
+                        el.classList.remove('hidden');
+                        el.classList.add('block');
+                        if (section === 'documents' && app.chartInstance) {
+                            app.chartInstance.resize(); // Fix chart size on tab switch
+                        }
+                    } else {
+                        el.classList.add('hidden');
+                        el.classList.remove('block');
+                    }
+                });
+                app.currentTab = tabId;
+            },
+
+            // --- VIEW 1: NAMES ---
+            renderTimeline: () => {
+                const container = document.getElementById('timeline-points');
+                container.innerHTML = '';
+                
+                data.names.forEach((item, index) => {
+                    // Button Point
+                    const btn = document.createElement('button');
+                    btn.className = `timeline-point w-4 h-4 rounded-full bg-slate-300 border-2 border-white shadow-sm hover:bg-blue-400 transition-all focus:outline-none ${index === 0 ? 'active' : ''}`;
+                    btn.onclick = () => app.updateNameDetail(index);
+                    
+                    // Label
+                    const label = document.createElement('div');
+                    label.className = "absolute top-6 text-xs text-slate-500 font-medium whitespace-nowrap -ml-4";
+                    label.innerText = item.name.split(' ')[0]; // Show short name
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = "relative flex flex-col items-center cursor-pointer group";
+                    wrapper.appendChild(btn);
+                    wrapper.appendChild(label);
+                    wrapper.onclick = () => app.updateNameDetail(index);
+
+                    container.appendChild(wrapper);
+                });
+                
+                // Set initial detail
+                app.updateNameDetail(0);
+            },
+
+            updateNameDetail: (index) => {
+                const item = data.names[index];
+                
+                // Highlight active point
+                document.querySelectorAll('.timeline-point').forEach((pt, idx) => {
+                    if(idx === index) {
+                        pt.classList.add('active');
+                        pt.classList.remove('bg-slate-300');
+                    } else {
+                        pt.classList.remove('active');
+                        pt.classList.add('bg-slate-300');
+                    }
+                });
+
+                // Update text with fade effect
+                const card = document.getElementById('name-detail-card');
+                card.classList.add('opacity-50');
+                
+                setTimeout(() => {
+                    document.getElementById('name-title').innerText = item.name;
+                    document.getElementById('name-era').innerText = item.era;
+                    document.getElementById('name-desc').innerText = item.desc;
+                    document.getElementById('name-note').innerText = item.note ? `비고: ${item.note}` : '';
+                    card.classList.remove('opacity-50');
+                    
+                    // Adjust color based on content (Matsushima/Liancourt are slightly different context)
+                    if (item.name.includes('마쓰시마') || item.name.includes('리앙쿠르')) {
+                        card.className = "bg-slate-100 rounded-lg p-6 border-l-4 border-slate-500 transition-all duration-300";
+                        document.getElementById('name-title').className = "text-2xl font-bold text-slate-700 mb-2";
+                        document.getElementById('name-era').className = "inline-block bg-slate-200 text-slate-700 text-xs px-2 py-1 rounded mb-3 font-semibold";
+                    } else {
+                        card.className = "bg-blue-50 rounded-lg p-6 border-l-4 border-blue-900 transition-all duration-300";
+                        document.getElementById('name-title').className = "text-2xl font-bold text-blue-900 mb-2";
+                        document.getElementById('name-era').className = "inline-block bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded mb-3 font-semibold";
+                    }
+                }, 150);
+            },
+
+            // --- VIEW 2: DOCUMENTS ---
+            initChart: () => {
+                const ctx = document.getElementById('docChart').getContext('2d');
+                
+                const krCount = data.documents.filter(d => d.type === 'KR_Evidence').length;
+                const jpCount = data.documents.filter(d => d.type === 'JP_Claim').length;
+
+                app.chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['한국 영유권 입증', '일본측 주장/고시'],
+                        datasets: [{
+                            label: '문헌 수',
+                            data: [krCount, jpCount],
+                            backgroundColor: ['#1e3a8a', '#94a3b8'], // Blue-900, Slate-400
+                            borderColor: ['#172554', '#64748b'],
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `문헌 수: ${context.raw} 건`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        },
+                        onClick: (e, activeElements) => {
+                            if (activeElements.length > 0) {
+                                const index = activeElements[0].index;
+                                const type = index === 0 ? 'KR_Evidence' : 'JP_Claim';
+                                app.renderDocList(type);
+                            }
+                        }
+                    }
+                });
+            },
+
+            renderDocList: (filterType) => {
+                const container = document.getElementById('doc-list');
+                container.innerHTML = '';
+
+                const filtered = filterType === 'all' 
+                    ? data.documents 
+                    : data.documents.filter(d => d.type === filterType);
+
+                if (filtered.length === 0) {
+                    container.innerHTML = '<div class="text-sm text-slate-400 text-center py-4">해당하는 문헌이 없습니다.</div>';
+                    return;
+                }
+
+                filtered.forEach(doc => {
+                    const el = document.createElement('div');
+                    // Style based on type
+                    const borderClass = doc.type === 'KR_Evidence' ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200 bg-slate-50';
+                    const icon = doc.type === 'KR_Evidence' ? '📜' : '⚠️';
+                    const badge = doc.key ? '<span class="ml-2 text-[10px] bg-red-100 text-red-700 px-1 rounded border border-red-200">중요</span>' : '';
+
+                    el.className = `p-3 rounded border ${borderClass} hover:shadow-sm transition-shadow`;
+                    el.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-slate-800 text-sm flex items-center gap-1">${icon} ${doc.title} ${badge}</h4>
+                            <span class="text-xs font-mono text-slate-500 bg-white px-1 rounded border border-slate-100">${doc.year}</span>
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">${doc.desc}</p>
+                    `;
+                    container.appendChild(el);
+                });
+            },
+
+            resetDocFilter: () => {
+                app.renderDocList('all');
+            },
+
+            // --- VIEW 3: PEOPLE ---
+            renderPeople: () => {
+                const container = document.getElementById('people-grid');
+                data.people.forEach(p => {
+                    const el = document.createElement('div');
+                    el.className = "bg-white p-5 rounded-lg border border-slate-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1";
+                    
+                    // Card Content
+                    el.innerHTML = `
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-full text-xl mr-3">
+                                ${p.icon}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800">${p.name}</h3>
+                                <p class="text-xs text-blue-600 font-medium">${p.role}</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600 leading-relaxed border-t border-slate-50 pt-3">
+                            ${p.desc}
+                        </p>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+        };
+
+        // Initialize App
+        window.onload = app.init;
+
+    </script>
+</body>
+</html>
